@@ -11,7 +11,7 @@
 #include <X11/extensions/Xv.h>
 #include <string.h>
 
-#include "hosted.h"
+#include "xwayland.h"
 
 /* globals */
 struct wlshm_device
