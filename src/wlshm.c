@@ -225,6 +225,7 @@ wlshm_free_window_pixmap(WindowPtr pWindow)
     pixmap->devPrivate.fptr = d->orig;
     memcpy(d->orig, d->data, d->bytes);
     munmap(d->data, d->bytes);
+    close(d->fd);
 
     free(d);
 }
