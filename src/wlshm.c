@@ -601,14 +601,15 @@ wlshm_pre_init(ScrnInfoPtr pScrn, int flags)
 
     xf86ProcessOptions(pScrn->scrnIndex, pScrn->options, wlshm->options);
 
-    if (xf86LoadSubModule(pScrn, "xwayland") == NULL) {
-	goto error;
-    }
-
-    wlshm->xwl_screen = xwl_screen_pre_init(pScrn, 0, &xwl_driver);
+    wlshm->xwl_screen = xwl_screen_create();
     if (!wlshm->xwl_screen) {
         xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Failed to initialize xwayland.\n");
         goto error;
+    }
+
+    if (!xwl_screen_pre_init(pScrn, wlshm->xwl_screen, 0, &xwl_driver)) {
+            xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Failed to pre-init xwayland screen\n");
+            xwl_screen_destroy(wlshm->xwl_screen);
     }
 
     /* Subtract memory for HW cursor */
