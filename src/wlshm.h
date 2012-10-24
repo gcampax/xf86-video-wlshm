@@ -13,14 +13,14 @@
 
 #include "xwayland.h"
 
+#define WLSHM_DRIVER_NAME "wlshm"
+#define COMBINED_DRIVER_VERSION \
+    ((PACKAGE_VERSION_MAJOR << 16) | (PACKAGE_VERSION_MINOR << 8) | \
+     PACKAGE_VERSION_PATCHLEVEL)
+
 /* globals */
 struct wlshm_device
 {
-    DGAModePtr		dga_modes;
-    int			num_dga_modes;
-    Bool		dga_active;
-    int			dga_viewport_status;
-
     /* options */
     OptionInfoPtr options;
 

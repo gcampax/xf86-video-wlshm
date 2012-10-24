@@ -40,14 +40,6 @@
 #include "scrnintstr.h"
 #include "servermd.h"
 
-#define WLSHM_VERSION 0001
-#define WLSHM_NAME "wlshm"
-#define WLSHM_DRIVER_NAME "wlshm"
-
-#define WLSHM_MAJOR_VERSION PACKAGE_VERSION_MAJOR
-#define WLSHM_MINOR_VERSION PACKAGE_VERSION_MINOR
-#define WLSHM_PATCHLEVEL PACKAGE_VERSION_PATCHLEVEL
-
 static DevPrivateKeyRec wlshm_pixmap_private_key;
 
 static Bool
@@ -488,7 +480,7 @@ wlshm_pre_init(ScrnInfoPtr pScrn, int flags)
 
     wlshm = wlshm_scrninfo_priv(pScrn);
 
-    pScrn->chipset = "wlshm";
+    pScrn->chipset = WLSHM_DRIVER_NAME;
     pScrn->monitor = pScrn->confScreen->monitor;
 
     xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Initializing Wayland SHM driver\n");
@@ -639,9 +631,9 @@ wlshm_probe(DriverPtr drv, int flags)
             continue ;
 
         xf86AddEntityToScreen(pScrn, entityIndex);
-        pScrn->driverVersion = WLSHM_VERSION;
+        pScrn->driverVersion = COMBINED_DRIVER_VERSION;
         pScrn->driverName    = WLSHM_DRIVER_NAME;
-        pScrn->name          = WLSHM_NAME;
+        pScrn->name          = WLSHM_DRIVER_NAME;
         pScrn->Probe         = wlshm_probe;
         pScrn->PreInit       = wlshm_pre_init;
         pScrn->ScreenInit    = wlshm_screen_init;
@@ -694,7 +686,7 @@ wlshm_driver_func(ScrnInfoPtr pScrn, xorgDriverFuncOp op, pointer ptr)
  */
 
 _X_EXPORT DriverRec wlshm = {
-    WLSHM_VERSION,
+    COMBINED_DRIVER_VERSION,
     WLSHM_DRIVER_NAME,
     NULL,
     wlshm_probe,
@@ -706,12 +698,12 @@ _X_EXPORT DriverRec wlshm = {
 
 static XF86ModuleVersionInfo wlshm_vers_rec =
 {
-	"wlshm",
+	WLSHM_DRIVER_NAME,
 	MODULEVENDORSTRING,
 	MODINFOSTRING1,
 	MODINFOSTRING2,
 	XORG_VERSION_CURRENT,
-	WLSHM_MAJOR_VERSION, WLSHM_MINOR_VERSION, WLSHM_PATCHLEVEL,
+	PACKAGE_VERSION_MAJOR, PACKAGE_VERSION_MINOR, PACKAGE_VERSION_PATCHLEVEL,
 	ABI_CLASS_VIDEODRV,
 	ABI_VIDEODRV_VERSION,
 	MOD_CLASS_VIDEODRV,
@@ -724,27 +716,21 @@ wlshm_setup(pointer module, pointer opts, int *errmaj, int *errmin)
 {
     static Bool initialized = FALSE;
 
-    if (!initialized) {
-        initialized = TRUE;
-        xf86AddDriver(&wlshm, module, HaveDriverFuncs);
-
-	/*
-	 * Modules that this driver always requires can be loaded here
-	 * by calling LoadSubModule().
-	 */
-
-	/*
-	 * The return value must be non-NULL on success even though there
-	 * is no TearDownProc.
-	 */
-	return (pointer)1;
-    } else {
-	if (errmaj) *errmaj = LDR_ONCEONLY;
+    if (initialized) {
+	if (errmaj)
+            *errmaj = LDR_ONCEONLY;
 	return NULL;
     }
-}
 
-static MODULESETUPPROTO(wlshm_setup);
+    initialized = TRUE;
+    xf86AddDriver(&wlshm, module, HaveDriverFuncs);
+
+    /*
+     * The return value must be non-NULL on success even though there
+     * is no TearDownProc.
+     */
+    return (pointer) 1;
+}
 
 /*
  * This is the module init data.
