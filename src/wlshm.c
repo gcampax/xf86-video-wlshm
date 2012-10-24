@@ -17,9 +17,6 @@
 /* All drivers initialising the SW cursor need this */
 #include "mipointer.h"
 
-/* All drivers implementing backing store need this */
-#include "mibstore.h"
-
 /* All drivers using framebuffer need this */
 #include "xf86fbman.h"
 #include "fb.h"
@@ -390,7 +387,6 @@ wlshm_screen_init(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 	xf86InitFBManager(pScreen, &AvailFBArea);
     }
 
-    miInitializeBackingStore(pScreen);
     xf86SetBackingStore(pScreen);
     xf86SetSilkenMouse(pScreen);
 
@@ -755,8 +751,6 @@ _X_EXPORT DriverRec wlshm = {
     wlshm_driver_func
 };
 
-#ifdef XFree86LOADER
-
 static XF86ModuleVersionInfo wlshm_vers_rec =
 {
 	"wlshm",
@@ -808,5 +802,3 @@ _X_EXPORT XF86ModuleData wlshmModuleData = {
     wlshm_setup,
     NULL
 };
-
-#endif /* XFree86LOADER */
