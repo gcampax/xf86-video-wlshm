@@ -33,4 +33,5 @@ wlshm_drv_ladir = @moduledir@/drivers
 
 wlshm_drv_la_SOURCES = \
          wlshm.c \
-         wlshm.h
+         wlshm.h \
+	 compat-api.h

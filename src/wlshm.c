@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2002, SuSE Linux AG, Author: Egbert Eich
  * Copyright 2010, commonIT, Author: Corentin Chary
@@ -30,6 +29,7 @@
  * Driver data structures.
  */
 #include "wlshm.h"
+#include "compat-api.h"
 
 #include <sys/mman.h>
 #include <unistd.h>
@@ -99,24 +99,24 @@ wlshm_save_screen(ScreenPtr pScreen, int mode)
 }
 
 static Bool
-wlshm_enter_vt(int scrnIndex, int flags)
+wlshm_enter_vt(VT_FUNC_ARGS_DECL)
 {
     return TRUE;
 }
 
 static void
-wlshm_leave_vt(int scrnIndex, int flags)
+wlshm_leave_vt(VT_FUNC_ARGS_DECL)
 {
 }
 
 static Bool
-wlshm_switch_mode(int scrnIndex, DisplayModePtr mode, int flags)
+wlshm_switch_mode(SWITCH_MODE_ARGS_DECL)
 {
     return TRUE;
 }
 
 static void
-wlshm_adjust_frame(int scrnIndex, int x, int y, int flags)
+wlshm_adjust_frame(ADJUST_FRAME_ARGS_DECL)
 {
 }
 
@@ -131,9 +131,9 @@ wlshm_flush_callback(CallbackListPtr *list,
 }
 
 static Bool
-wlshm_close_screen(int scrnIndex, ScreenPtr pScreen)
+wlshm_close_screen(CLOSE_SCREEN_ARGS_DECL)
 {
-    ScrnInfoPtr pScrn = xf86Screens[scrnIndex];
+    ScrnInfoPtr pScrn = xf86Screens[screen->myNum];
     struct wlshm_device *wlshm = wlshm_scrninfo_priv(pScrn);
 
     DeleteCallback(&FlushCallback, wlshm_flush_callback, wlshm);
@@ -145,15 +145,15 @@ wlshm_close_screen(int scrnIndex, ScreenPtr pScreen)
     xwl_screen_close(wlshm->xwl_screen);
 
     pScrn->vtSema = FALSE;
-    pScreen->CloseScreen = wlshm->CloseScreen;
-    return (*pScreen->CloseScreen)(scrnIndex, pScreen);
+    screen->CloseScreen = wlshm->CloseScreen;
+    return (*screen->CloseScreen)(CLOSE_SCREEN_ARGS);
 }
 
 static void
-wlshm_free_screen(int scrnIndex, int flags)
+wlshm_free_screen(FREE_SCREEN_ARGS_DECL)
 {
-    ScrnInfoPtr pScrn = xf86Screens[scrnIndex];
-    struct wlshm_device *wlshm = wlshm_scrninfo_priv(pScrn);
+    SCRN_INFO_PTR(arg);
+    struct wlshm_device *wlshm = wlshm_scrninfo_priv(scrn);
 
     if (wlshm) {
         if (wlshm->xwl_screen)
@@ -161,11 +161,11 @@ wlshm_free_screen(int scrnIndex, int flags)
 	wlshm->xwl_screen = NULL;
     }
 
-    wlshm_free_device(pScrn);
+    wlshm_free_device(scrn);
 }
 
 static ModeStatus
-wlshm_valid_mode(int scrnIndex, DisplayModePtr mode, Bool verbose, int flags)
+wlshm_valid_mode(SCRN_ARG_TYPE arg, DisplayModePtr mode, Bool verbose, int flags)
 {
     return MODE_OK;
 }
@@ -274,7 +274,7 @@ wlshm_create_window(WindowPtr pWin)
 }
 
 static Bool
-wlshm_screen_init(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
+wlshm_screen_init(SCREEN_INIT_ARGS_DECL)
 {
     ScrnInfoPtr pScrn;
     struct wlshm_device *wlshm;
@@ -287,8 +287,8 @@ wlshm_screen_init(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
      * we need to get the ScrnInfoRec for this screen, so let's allocate
      * one first thing
      */
-    pScrn = xf86Screens[pScreen->myNum];
-    wlshm = wlshm_screen_priv(pScreen);
+    pScrn = xf86Screens[screen->myNum];
+    wlshm = wlshm_screen_priv(screen);
 
     /*
      * Reset visual list.
@@ -314,7 +314,7 @@ wlshm_screen_init(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
      * Call the framebuffer layer's ScreenInit function, and fill in other
      * pScreen fields.
      */
-    ret = fbScreenInit(pScreen, wlshm->fb,
+    ret = fbScreenInit(screen, wlshm->fb,
                        pScrn->virtualX, pScrn->virtualY,
                        pScrn->xDpi, pScrn->yDpi,
                        pScrn->displayWidth, pScrn->bitsPerPixel);
@@ -323,8 +323,8 @@ wlshm_screen_init(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 
     if (pScrn->depth > 8) {
         /* Fixup RGB ordering */
-        visual = pScreen->visuals + pScreen->numVisuals;
-        while (--visual >= pScreen->visuals) {
+        visual = screen->visuals + screen->numVisuals;
+        while (--visual >= screen->visuals) {
 	    if ((visual->class | DynamicClass) == DirectColor) {
 		visual->offsetRed = pScrn->offset.red;
 		visual->offsetGreen = pScrn->offset.green;
@@ -337,9 +337,9 @@ wlshm_screen_init(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
     }
 
     /* must be after RGB ordering fixed */
-    fbPictureInit(pScreen, 0, 0);
+    fbPictureInit(screen, 0, 0);
 
-    xf86SetBlackWhitePixels(pScreen);
+    xf86SetBlackWhitePixels(screen);
 
     {
 	BoxRec AvailFBArea;
@@ -349,39 +349,39 @@ wlshm_screen_init(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 	AvailFBArea.x2 = pScrn->displayWidth;
 	AvailFBArea.y2 = pScrn->virtualY;
 
-	xf86InitFBManager(pScreen, &AvailFBArea);
+	xf86InitFBManager(screen, &AvailFBArea);
     }
 
-    xf86SetBackingStore(pScreen);
-    xf86SetSilkenMouse(pScreen);
+    xf86SetBackingStore(screen);
+    xf86SetSilkenMouse(screen);
 
     /* Initialise cursor functions */
-    miDCInitialize (pScreen, xf86GetPointerScreenFuncs());
+    miDCInitialize (screen, xf86GetPointerScreenFuncs());
 
     /* FIXME: colourmap */
-    miCreateDefColormap(pScreen);
+    miCreateDefColormap(screen);
 
-    pScreen->SaveScreen = wlshm_save_screen;
+    screen->SaveScreen = wlshm_save_screen;
 
     /* Wrap the current CloseScreen function */
-    wlshm->CloseScreen = pScreen->CloseScreen;
-    pScreen->CloseScreen = wlshm_close_screen;
+    wlshm->CloseScreen = screen->CloseScreen;
+    screen->CloseScreen = wlshm_close_screen;
 
     /* Wrap the current CreateWindow function */
-    wlshm->CreateWindow = pScreen->CreateWindow;
-    pScreen->CreateWindow = wlshm_create_window;
+    wlshm->CreateWindow = screen->CreateWindow;
+    screen->CreateWindow = wlshm_create_window;
 
     /* Wrap the current DestroyWindow function */
-    wlshm->DestroyWindow = pScreen->DestroyWindow;
-    pScreen->DestroyWindow = wlshm_destroy_window;
+    wlshm->DestroyWindow = screen->DestroyWindow;
+    screen->DestroyWindow = wlshm_destroy_window;
 
     /* Wrap the current UnrealizeWindow function */
-    wlshm->UnrealizeWindow = pScreen->UnrealizeWindow;
-    pScreen->UnrealizeWindow = wlshm_unrealize_window;
+    wlshm->UnrealizeWindow = screen->UnrealizeWindow;
+    screen->UnrealizeWindow = wlshm_unrealize_window;
 
     /* Wrap the current SetWindowPixmap function */
-    wlshm->SetWindowPixmap = pScreen->SetWindowPixmap;
-    pScreen->SetWindowPixmap = wlshm_set_window_pixmap;
+    wlshm->SetWindowPixmap = screen->SetWindowPixmap;
+    screen->SetWindowPixmap = wlshm_set_window_pixmap;
 
     AddCallback(&FlushCallback, wlshm_flush_callback, wlshm);
 
@@ -390,10 +390,10 @@ wlshm_screen_init(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
 	xf86ShowUnusedOptions(pScrn->scrnIndex, pScrn->options);
     }
 
-    miScreenDevPrivateInit(pScreen, pScreen->width, wlshm->fb);
+    miScreenDevPrivateInit(screen, screen->width, wlshm->fb);
 
     if (wlshm->xwl_screen)
-	return (xwl_screen_init(wlshm->xwl_screen, pScreen) == Success);
+	return (xwl_screen_init(wlshm->xwl_screen, screen) == Success);
 
     return TRUE;
 }
