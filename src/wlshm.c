@@ -92,16 +92,6 @@ wlshm_free_device(ScrnInfoPtr pScrn)
     pScrn->driverPrivate = NULL;
 }
 
-static void
-wlshm_save(ScrnInfoPtr pScrn)
-{
-}
-
-static void
-wlshm_restore(ScrnInfoPtr pScrn, Bool restoreText)
-{
-}
-
 static Bool
 wlshm_save_screen(ScreenPtr pScreen, int mode)
 {
@@ -109,36 +99,20 @@ wlshm_save_screen(ScreenPtr pScreen, int mode)
 }
 
 static Bool
-wlshm_mode_init(ScrnInfoPtr pScrn, DisplayModePtr mode)
-{
-    wlshm_restore(pScrn, FALSE);
-
-    return TRUE;
-}
-
-static Bool
 wlshm_enter_vt(int scrnIndex, int flags)
 {
-    ScrnInfoPtr pScrn = xf86Screens[scrnIndex];
-
-    /* Should we re-save the text mode on each VT enter? */
-    if(!wlshm_mode_init(pScrn, pScrn->currentMode))
-      return FALSE;
-
     return TRUE;
 }
 
 static void
 wlshm_leave_vt(int scrnIndex, int flags)
 {
-    ScrnInfoPtr pScrn = xf86Screens[scrnIndex];
-    wlshm_restore(pScrn, TRUE);
 }
 
 static Bool
 wlshm_switch_mode(int scrnIndex, DisplayModePtr mode, int flags)
 {
-    return wlshm_mode_init(xf86Screens[scrnIndex], mode);
+    return TRUE;
 }
 
 static void
@@ -164,10 +138,9 @@ wlshm_close_screen(int scrnIndex, ScreenPtr pScreen)
 
     DeleteCallback(&FlushCallback, wlshm_flush_callback, wlshm);
 
-    if(pScrn->vtSema){
- 	wlshm_restore(pScrn, TRUE);
+    if (wlshm->fb)
 	free(wlshm->fb);
-    }
+    wlshm->fb = NULL;
 
     xwl_screen_close(wlshm->xwl_screen);
 
@@ -316,14 +289,6 @@ wlshm_screen_init(int scrnIndex, ScreenPtr pScreen, int argc, char **argv)
      */
     pScrn = xf86Screens[pScreen->myNum];
     wlshm = wlshm_screen_priv(pScreen);
-
-    /*
-     * next we save the current state and setup the first mode
-     */
-    wlshm_save(pScrn);
-
-    if (!wlshm_mode_init(pScrn,pScrn->currentMode))
-	return FALSE;
 
     /*
      * Reset visual list.
