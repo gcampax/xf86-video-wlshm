@@ -17,7 +17,6 @@
 #include "mipointer.h"
 
 /* All drivers using framebuffer need this */
-#include "xf86fbman.h"
 #include "fb.h"
 #include "picturestr.h"
 
@@ -340,17 +339,6 @@ wlshm_screen_init(SCREEN_INIT_ARGS_DECL)
     fbPictureInit(screen, 0, 0);
 
     xf86SetBlackWhitePixels(screen);
-
-    {
-	BoxRec AvailFBArea;
-
-	AvailFBArea.x1 = 0;
-	AvailFBArea.y1 = 0;
-	AvailFBArea.x2 = pScrn->displayWidth;
-	AvailFBArea.y2 = pScrn->virtualY;
-
-	xf86InitFBManager(screen, &AvailFBArea);
-    }
 
     xf86SetBackingStore(screen);
     xf86SetSilkenMouse(screen);
