@@ -48,7 +48,8 @@ window_own_pixmap(WindowPtr pWin)
     if (xorgRootless) {
 	if (pWin->redirectDraw != RedirectDrawManual)
             return FALSE;
-    } else {
+    }
+    else {
 	if (pWin->parent)
 	    return FALSE;
     }
@@ -79,6 +80,7 @@ wlshm_free_device(ScrnInfoPtr pScrn)
 {
     if (pScrn->driverPrivate == NULL)
 	return;
+
     free(pScrn->driverPrivate);
     pScrn->driverPrivate = NULL;
 }
@@ -170,15 +172,15 @@ wlshm_free_window_pixmap(WindowPtr pWindow)
     PixmapPtr pixmap;
 
     if (!xorgRootless && pWindow->parent)
-	return ;
+	return;
 
     pixmap = pScreen->GetWindowPixmap(pWindow);
     if (!pixmap)
-        return ;
+        return;
 
     d = dixLookupPrivate(&pixmap->devPrivates, &wlshm_pixmap_private_key);
     if (!d)
-        return ;
+        return;
 
     dixSetPrivate(&pixmap->devPrivates, &wlshm_pixmap_private_key, NULL);
 
@@ -261,6 +263,7 @@ wlshm_create_window(WindowPtr pWin)
                                       pWin->drawable.height,
                                       pWin->drawable.depth, 0);
     _fbSetWindowPixmap(pWin, pixmap);
+
     return ret;
 }
 
@@ -274,20 +277,14 @@ wlshm_screen_init(SCREEN_INIT_ARGS_DECL)
 
     if (!dixRegisterPrivateKey(&wlshm_pixmap_private_key, PRIVATE_PIXMAP, 0))
         return BadAlloc;
-    /*
-     * we need to get the ScrnInfoRec for this screen, so let's allocate
-     * one first thing
-     */
+
     pScrn = xf86Screens[screen->myNum];
     wlshm = wlshm_screen_priv(screen);
 
-    /*
-     * Reset visual list.
-     */
+    /* Reset visual list. */
     miClearVisualTypes();
 
     /* Setup the visuals we support. */
-
     if (!miSetVisualTypes(pScrn->depth,
                           miGetDefaultVisualMask(pScrn->depth),
                           pScrn->rgbBits, pScrn->defaultVisual))
@@ -316,14 +313,15 @@ wlshm_screen_init(SCREEN_INIT_ARGS_DECL)
         /* Fixup RGB ordering */
         visual = screen->visuals + screen->numVisuals;
         while (--visual >= screen->visuals) {
-	    if ((visual->class | DynamicClass) == DirectColor) {
-		visual->offsetRed = pScrn->offset.red;
-		visual->offsetGreen = pScrn->offset.green;
-		visual->offsetBlue = pScrn->offset.blue;
-		visual->redMask = pScrn->mask.red;
-		visual->greenMask = pScrn->mask.green;
-		visual->blueMask = pScrn->mask.blue;
-	    }
+	    if ((visual->class | DynamicClass) != DirectColor)
+                continue;
+
+            visual->offsetRed = pScrn->offset.red;
+            visual->offsetGreen = pScrn->offset.green;
+            visual->offsetBlue = pScrn->offset.blue;
+            visual->redMask = pScrn->mask.red;
+            visual->greenMask = pScrn->mask.green;
+            visual->blueMask = pScrn->mask.blue;
 	}
     }
 
@@ -336,7 +334,7 @@ wlshm_screen_init(SCREEN_INIT_ARGS_DECL)
     xf86SetSilkenMouse(screen);
 
     /* Initialise cursor functions */
-    miDCInitialize (screen, xf86GetPointerScreenFuncs());
+    miDCInitialize(screen, xf86GetPointerScreenFuncs());
 
     /* FIXME: colourmap */
     miCreateDefColormap(screen);
@@ -366,9 +364,8 @@ wlshm_screen_init(SCREEN_INIT_ARGS_DECL)
     AddCallback(&FlushCallback, wlshm_flush_callback, wlshm);
 
     /* Report any unused options (only for the first generation) */
-    if (serverGeneration == 1) {
+    if (serverGeneration == 1)
 	xf86ShowUnusedOptions(pScrn->scrnIndex, pScrn->options);
-    }
 
     miScreenDevPrivateInit(screen, screen->width, wlshm->fb);
 
@@ -388,7 +385,7 @@ wlshm_create_window_buffer(struct xwl_window *xwl_window,
     int ret = BadAlloc;
     struct wlshm_pixmap *d;
 
-    d = calloc(sizeof (struct wlshm_pixmap), 1);
+    d = calloc(sizeof(struct wlshm_pixmap), 1);
     if (!d) {
 	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "can't alloc wlshm pixmap: %s\n",
                    strerror(errno));
@@ -404,8 +401,8 @@ wlshm_create_window_buffer(struct xwl_window *xwl_window,
         goto exit;
     }
 
-    d->bytes = pixmap->drawable.width * pixmap->drawable.height
-        * pixmap->drawable.bitsPerPixel / 8;
+    d->bytes = pixmap->drawable.width * pixmap->drawable.height *
+               (pixmap->drawable.bitsPerPixel / 8);
 
     if (ftruncate(d->fd, d->bytes) < 0) {
 	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "ftruncate failed: %s\n",
@@ -449,7 +446,7 @@ exit:
 
 static struct xwl_driver xwl_driver = {
     .version = 2,
-    .create_window_buffer = wlshm_create_window_buffer
+    .create_window_buffer = wlshm_create_window_buffer,
 };
 
 static const OptionInfoRec wlshm_options[] = {
@@ -474,9 +471,8 @@ wlshm_pre_init(ScrnInfoPtr pScrn, int flags)
     }
 
     /* Allocate the wlshm_device driverPrivate */
-    if (!wlshm_get_device(pScrn)) {
+    if (!wlshm_get_device(pScrn))
 	return FALSE;
-    }
 
     wlshm = wlshm_scrninfo_priv(pScrn);
 
@@ -486,21 +482,20 @@ wlshm_pre_init(ScrnInfoPtr pScrn, int flags)
     xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Initializing Wayland SHM driver\n");
 
     flags24 = Support32bppFb | SupportConvert24to32 | PreferConvert24to32;
-    if (!xf86SetDepthBpp(pScrn, 0, 0, 0, flags24)) {
+    if (!xf86SetDepthBpp(pScrn, 0, 0, 0, flags24))
 	return FALSE;
-    } else {
-	/* Check that the returned depth is one we support */
-	switch (pScrn->depth) {
-	case 24:
-        case 30:
-        case 32:
-            break ;
-	default:
-	    xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
-		       "Given depth (%d) is not supported by this driver\n",
-		       pScrn->depth);
-	    return FALSE;
-	}
+
+    /* Check that the returned depth is one we support */
+    switch (pScrn->depth) {
+    case 24:
+    case 30:
+    case 32:
+        break;
+    default:
+	xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+		   "Given depth (%d) is not supported by this driver\n",
+		   pScrn->depth);
+	return FALSE;
     }
 
     xf86PrintDepthBpp(pScrn);
@@ -513,12 +508,11 @@ wlshm_pre_init(ScrnInfoPtr pScrn, int flags)
 	/* The defaults are OK for us */
 	rgb zeros = {0, 0, 0};
 
-	if (!xf86SetWeight(pScrn, zeros, zeros)) {
+	if (!xf86SetWeight(pScrn, zeros, zeros))
 	    return FALSE;
-	} else {
-	    /* XXX check that weight returned is supported */
-	    ;
-	}
+
+        /* XXX check that weight returned is supported */
+	;
     }
 
     if (!xf86SetDefaultVisual(pScrn, -1))
@@ -545,13 +539,15 @@ wlshm_pre_init(ScrnInfoPtr pScrn, int flags)
 
     wlshm->xwl_screen = xwl_screen_create();
     if (!wlshm->xwl_screen) {
-        xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Failed to initialize xwayland.\n");
+        xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+                   "Failed to initialize xwayland.\n");
         goto error;
     }
 
     if (!xwl_screen_pre_init(pScrn, wlshm->xwl_screen, 0, &xwl_driver)) {
-            xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "Failed to pre-init xwayland screen\n");
-            xwl_screen_destroy(wlshm->xwl_screen);
+        xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+                   "Failed to pre-init xwayland screen\n");
+        xwl_screen_destroy(wlshm->xwl_screen);
     }
 
     /* Subtract memory for HW cursor */
@@ -587,9 +583,8 @@ wlshm_pre_init(ScrnInfoPtr pScrn, int flags)
     /* If monitor resolution is set on the command line, use it */
     xf86SetDpi(pScrn, 0, 0);
 
-    if (xf86LoadSubModule(pScrn, "fb") == NULL) {
+    if (xf86LoadSubModule(pScrn, "fb") == NULL)
 	goto error;
-    }
 
     /* We have no contiguous physical fb in physical memory */
     pScrn->memPhysBase = 0;
@@ -628,7 +623,7 @@ wlshm_probe(DriverPtr drv, int flags)
         ScrnInfoPtr pScrn = xf86AllocateScreen(drv, 0);
 
         if (!pScrn)
-            continue ;
+            continue;
 
         xf86AddEntityToScreen(pScrn, entityIndex);
         pScrn->driverVersion = COMBINED_DRIVER_VERSION;
@@ -668,12 +663,12 @@ wlshm_driver_func(ScrnInfoPtr pScrn, xorgDriverFuncOp op, pointer ptr)
     CARD32 *flag;
 
     switch (op) {
-	case GET_REQUIRED_HW_INTERFACES:
-	    flag = (CARD32*)ptr;
-	    (*flag) = HW_SKIP_CONSOLE;
-	    return TRUE;
-	default:
-	    return FALSE;
+    case GET_REQUIRED_HW_INTERFACES:
+        flag = (CARD32*)ptr;
+	(*flag) = HW_SKIP_CONSOLE;
+	return TRUE;
+    default:
+	return FALSE;
     }
 }
 
@@ -698,16 +693,16 @@ _X_EXPORT DriverRec wlshm = {
 
 static XF86ModuleVersionInfo wlshm_vers_rec =
 {
-	WLSHM_DRIVER_NAME,
-	MODULEVENDORSTRING,
-	MODINFOSTRING1,
-	MODINFOSTRING2,
-	XORG_VERSION_CURRENT,
-	PACKAGE_VERSION_MAJOR, PACKAGE_VERSION_MINOR, PACKAGE_VERSION_PATCHLEVEL,
-	ABI_CLASS_VIDEODRV,
-	ABI_VIDEODRV_VERSION,
-	MOD_CLASS_VIDEODRV,
-	{0,0,0,0}
+    WLSHM_DRIVER_NAME,
+    MODULEVENDORSTRING,
+    MODINFOSTRING1,
+    MODINFOSTRING2,
+    XORG_VERSION_CURRENT,
+    PACKAGE_VERSION_MAJOR, PACKAGE_VERSION_MINOR, PACKAGE_VERSION_PATCHLEVEL,
+    ABI_CLASS_VIDEODRV,
+    ABI_VIDEODRV_VERSION,
+    MOD_CLASS_VIDEODRV,
+    { 0, 0, 0, 0 }
 };
 
 
