@@ -318,8 +318,7 @@ wlshm_screen_init(SCREEN_INIT_ARGS_DECL)
         return FALSE;
 
     wlshm->fb = malloc(pScrn->virtualX * pScrn->virtualY * pScrn->bitsPerPixel);
-
-    if (!wlshm)
+    if (!wlshm->fb)
 	return FALSE;
 
     /*
