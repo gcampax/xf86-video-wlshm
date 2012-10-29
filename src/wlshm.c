@@ -195,7 +195,7 @@ wlshm_free_window_pixmap(WindowPtr pWindow)
     struct wlshm_pixmap *d;
     PixmapPtr pixmap;
 
-    if (!xorgRootless && pWindow->parent)
+    if (!window_own_pixmap(pWindow))
 	return;
 
     pixmap = pScreen->GetWindowPixmap(pWindow);
@@ -279,7 +279,7 @@ wlshm_create_window(WindowPtr pWin)
     wlshm->CreateWindow = pScreen->CreateWindow;
     pScreen->CreateWindow = wlshm_create_window;
 
-    if (!xorgRootless || !window_own_pixmap(pWin))
+    if (!window_own_pixmap(pWin))
 	return ret;
 
     PixmapPtr pixmap = fbCreatePixmap(pScreen,
