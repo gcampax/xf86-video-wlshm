@@ -138,13 +138,17 @@ wlshm_adjust_frame(ADJUST_FRAME_ARGS_DECL)
 }
 
 static void
-wlshm_flush_callback(CallbackListPtr *list,
-                     pointer user_data, pointer call_data)
+block_handler(pointer blockData, OSTimePtr pTimeout, pointer pReadMask)
 {
-    struct wlshm_device *wlshm = user_data;
+    struct wlshm_device *wlshm = (struct wlshm_device *) blockData;
 
     if (wlshm->xwl_screen)
         xwl_screen_post_damage(wlshm->xwl_screen);
+}
+
+static void
+wakeup_handler(pointer blockData, int result, pointer pReadMask)
+{
 }
 
 static Bool
@@ -153,11 +157,11 @@ wlshm_close_screen(CLOSE_SCREEN_ARGS_DECL)
     ScrnInfoPtr pScrn = xf86Screens[screen->myNum];
     struct wlshm_device *wlshm = wlshm_scrninfo_priv(pScrn);
 
-    DeleteCallback(&FlushCallback, wlshm_flush_callback, wlshm);
-
     if (wlshm->fb)
 	free(wlshm->fb);
     wlshm->fb = NULL;
+
+    RemoveBlockAndWakeupHandlers(block_handler, wakeup_handler, wlshm);
 
     xwl_screen_close(wlshm->xwl_screen);
 
@@ -384,13 +388,13 @@ wlshm_screen_init(SCREEN_INIT_ARGS_DECL)
     wlshm->SetWindowPixmap = screen->SetWindowPixmap;
     screen->SetWindowPixmap = wlshm_set_window_pixmap;
 
-    AddCallback(&FlushCallback, wlshm_flush_callback, wlshm);
-
     /* Report any unused options (only for the first generation) */
     if (serverGeneration == 1)
 	xf86ShowUnusedOptions(pScrn->scrnIndex, pScrn->options);
 
     miScreenDevPrivateInit(screen, screen->width, wlshm->fb);
+
+    RegisterBlockAndWakeupHandlers(block_handler, wakeup_handler, wlshm);
 
     if (wlshm->xwl_screen)
 	return (xwl_screen_init(wlshm->xwl_screen, screen) == Success);
