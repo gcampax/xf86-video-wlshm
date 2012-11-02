@@ -67,20 +67,6 @@
 static DevPrivateKeyRec wlshm_pixmap_private_key;
 
 static Bool
-window_own_pixmap(WindowPtr pWin)
-{
-    if (xorgRootless) {
-	if (pWin->redirectDraw != RedirectDrawManual)
-            return FALSE;
-    }
-    else {
-	if (pWin->parent)
-	    return FALSE;
-    }
-    return TRUE;
-}
-
-static Bool
 wlshm_get_device(ScrnInfoPtr pScrn)
 {
     /*
@@ -192,107 +178,22 @@ wlshm_valid_mode(SCRN_ARG_TYPE arg, DisplayModePtr mode, Bool verbose, int flags
 }
 
 static void
-wlshm_free_window_pixmap(WindowPtr pWindow)
+wlshm_free_pixmap(PixmapPtr pixmap)
 {
-    ScreenPtr pScreen = pWindow->drawable.pScreen;
+    ScreenPtr pScreen = pixmap->drawable.pScreen;
     struct wlshm_device *wlshm = wlshm_screen_priv(pScreen);
     struct wlshm_pixmap *d;
-    PixmapPtr pixmap;
-
-    if (!window_own_pixmap(pWindow))
-	return;
-
-    pixmap = pScreen->GetWindowPixmap(pWindow);
-    if (!pixmap)
-        return;
 
     d = dixLookupPrivate(&pixmap->devPrivates, &wlshm_pixmap_private_key);
     if (!d)
         return;
 
-    dixSetPrivate(&pixmap->devPrivates, &wlshm_pixmap_private_key, NULL);
+    pScreen->ModifyPixmapHeader(pixmap, 0, 0, 0, 0, 0, NULL);
 
-    pixmap->devPrivate.ptr = d->orig;
-    pixmap->devPrivate.fptr = d->orig;
-    memcpy(d->orig, d->data, d->bytes);
     munmap(d->data, d->bytes);
     close(d->fd);
-
     free(d);
-}
-
-static Bool
-wlshm_destroy_window(WindowPtr pWindow)
-{
-    ScreenPtr pScreen = pWindow->drawable.pScreen;
-    struct wlshm_device *wlshm = wlshm_screen_priv(pScreen);
-    Bool ret;
-
-    wlshm_free_window_pixmap(pWindow);
-
-    pScreen->DestroyWindow = wlshm->DestroyWindow;
-    ret = (*pScreen->DestroyWindow)(pWindow);
-    wlshm->DestroyWindow = pScreen->DestroyWindow;
-    pScreen->DestroyWindow = wlshm_destroy_window;
-
-    return ret;
-}
-
-static Bool
-wlshm_unrealize_window(WindowPtr pWindow)
-{
-    ScreenPtr pScreen = pWindow->drawable.pScreen;
-    struct wlshm_device *wlshm = wlshm_screen_priv(pScreen);
-    Bool ret;
-
-    wlshm_free_window_pixmap(pWindow);
-
-    pScreen->UnrealizeWindow = wlshm->UnrealizeWindow;
-    ret = (*pScreen->UnrealizeWindow)(pWindow);
-    wlshm->UnrealizeWindow = pScreen->UnrealizeWindow;
-    pScreen->UnrealizeWindow = wlshm_unrealize_window;
-
-    return ret;
-}
-
-static void
-wlshm_set_window_pixmap(WindowPtr pWindow, PixmapPtr pPixmap)
-{
-    ScreenPtr pScreen = pWindow->drawable.pScreen;
-    struct wlshm_device *wlshm = wlshm_screen_priv(pScreen);
-
-    wlshm_free_window_pixmap(pWindow);
-
-    pScreen->SetWindowPixmap = wlshm->SetWindowPixmap;
-    (*pScreen->SetWindowPixmap)(pWindow, pPixmap);
-    wlshm->SetWindowPixmap = pScreen->SetWindowPixmap;
-    pScreen->SetWindowPixmap = wlshm_set_window_pixmap;
-
-    /* xwayland will call create_window_buffer later */
-}
-
-static Bool
-wlshm_create_window(WindowPtr pWin)
-{
-    ScreenPtr pScreen = pWin->drawable.pScreen;
-    struct wlshm_device *wlshm = wlshm_screen_priv(pScreen);
-    int ret;
-
-    pScreen->CreateWindow = wlshm->CreateWindow;
-    ret = pScreen->CreateWindow(pWin);
-    wlshm->CreateWindow = pScreen->CreateWindow;
-    pScreen->CreateWindow = wlshm_create_window;
-
-    if (!window_own_pixmap(pWin))
-	return ret;
-
-    PixmapPtr pixmap = fbCreatePixmap(pScreen,
-                                      pWin->drawable.width,
-                                      pWin->drawable.height,
-                                      pWin->drawable.depth, 0);
-    _fbSetWindowPixmap(pWin, pixmap);
-
-    return ret;
+    dixSetPrivate(&pixmap->devPrivates, &wlshm_pixmap_private_key, NULL);
 }
 
 static Bool
@@ -372,22 +273,6 @@ wlshm_screen_init(SCREEN_INIT_ARGS_DECL)
     wlshm->CloseScreen = screen->CloseScreen;
     screen->CloseScreen = wlshm_close_screen;
 
-    /* Wrap the current CreateWindow function */
-    wlshm->CreateWindow = screen->CreateWindow;
-    screen->CreateWindow = wlshm_create_window;
-
-    /* Wrap the current DestroyWindow function */
-    wlshm->DestroyWindow = screen->DestroyWindow;
-    screen->DestroyWindow = wlshm_destroy_window;
-
-    /* Wrap the current UnrealizeWindow function */
-    wlshm->UnrealizeWindow = screen->UnrealizeWindow;
-    screen->UnrealizeWindow = wlshm_unrealize_window;
-
-    /* Wrap the current SetWindowPixmap function */
-    wlshm->SetWindowPixmap = screen->SetWindowPixmap;
-    screen->SetWindowPixmap = wlshm_set_window_pixmap;
-
     /* Report any unused options (only for the first generation) */
     if (serverGeneration == 1)
 	xf86ShowUnusedOptions(pScrn->scrnIndex, pScrn->options);
@@ -451,10 +336,9 @@ wlshm_create_window_buffer(struct xwl_window *xwl_window,
         goto exit;
     }
 
-    d->orig = pixmap->devPrivate.ptr;
-    pixmap->devPrivate.ptr = d->data;
-    pixmap->devPrivate.fptr = d->data;
-    memcpy(d->data, d->orig, d->bytes);
+    memcpy(d->data, pixmap->devPrivate.ptr, d->bytes);
+
+    pScreen->ModifyPixmapHeader(pixmap, 0, 0, 0, 0, 0, d->data);
 
     dixSetPrivate(&pixmap->devPrivates, &wlshm_pixmap_private_key, d);
 
