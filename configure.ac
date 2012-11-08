@@ -22,10 +22,10 @@
 
 # Initialize Autoconf
 AC_PREREQ([2.60])
-AC_INIT([xf86-video-wlshm],
-        [0.3.4],
+AC_INIT([xf86-video-wayland],
+        [0.4.0],
         [https://bugs.freedesktop.org/enter_bug.cgi?product=wayland],
-        [xf86-video-wlshm])
+        [xf86-video-wayland])
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_AUX_DIR(.)
@@ -63,11 +63,7 @@ XORG_DRIVER_CHECK_EXT(XFreeXDGA, xf86dgaproto)
 PKG_CHECK_MODULES(XORG, [xorg-server >= 1.0.99.901] xproto fontsproto $REQUIRED_MODULES)
 
 # Checks for libraries.
-PKG_CHECK_MODULES(WAYLAND, [wayland-client])
-
-
-DRIVER_NAME=wlshm
-AC_SUBST([DRIVER_NAME])
+PKG_CHECK_MODULES(WAYLAND, [wayland-client >= 1.0])
 
 AC_CONFIG_FILES([
                 Makefile

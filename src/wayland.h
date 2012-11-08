@@ -13,7 +13,7 @@
 
 #include "xwayland.h"
 
-#define WLSHM_DRIVER_NAME "wlshm"
+#define WAYLAND_DRIVER_NAME "wayland"
 #define COMBINED_DRIVER_VERSION \
     ((PACKAGE_VERSION_MAJOR << 16) | (PACKAGE_VERSION_MINOR << 8) | \
      PACKAGE_VERSION_PATCHLEVEL)

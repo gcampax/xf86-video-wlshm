@@ -27,11 +27,11 @@
 
 AM_CFLAGS = $(XORG_CFLAGS) $(PCIACCESS_CFLAGS)
 
-wlshm_drv_la_LTLIBRARIES = wlshm_drv.la
-wlshm_drv_la_LDFLAGS = -module -avoid-version
-wlshm_drv_ladir = @moduledir@/drivers
+wayland_drv_la_LTLIBRARIES = wayland_drv.la
+wayland_drv_la_LDFLAGS = -module -avoid-version
+wayland_drv_ladir = @moduledir@/drivers
 
-wlshm_drv_la_SOURCES = \
-         wlshm.c \
-         wlshm.h \
+wayland_drv_la_SOURCES = \
+         wayland.c \
+         wayland.h \
 	 compat-api.h

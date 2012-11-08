@@ -51,7 +51,7 @@
 /*
  * Driver data structures.
  */
-#include "wlshm.h"
+#include "wayland.h"
 #include "compat-api.h"
 
 #include <sys/mman.h>
@@ -387,7 +387,7 @@ wlshm_pre_init(ScrnInfoPtr pScrn, int flags)
 
     wlshm = wlshm_scrninfo_priv(pScrn);
 
-    pScrn->chipset = WLSHM_DRIVER_NAME;
+    pScrn->chipset = WAYLAND_DRIVER_NAME;
     pScrn->monitor = pScrn->confScreen->monitor;
 
     xf86DrvMsg(pScrn->scrnIndex, X_INFO, "Initializing Wayland SHM driver\n");
@@ -510,7 +510,7 @@ error:
 
 /* Mandatory */
 static Bool
-wlshm_probe(DriverPtr drv, int flags)
+wayland_probe(DriverPtr drv, int flags)
 {
     Bool found = FALSE;
     int count;
@@ -523,7 +523,7 @@ wlshm_probe(DriverPtr drv, int flags)
      * Find the config file Device sections that match this
      * driver, and return if there are none.
      */
-    count = xf86MatchDevice(WLSHM_DRIVER_NAME, &sections);
+    count = xf86MatchDevice(WAYLAND_DRIVER_NAME, &sections);
 
     if (count <= 0) {
 	return FALSE;
@@ -538,9 +538,9 @@ wlshm_probe(DriverPtr drv, int flags)
 
         xf86AddEntityToScreen(pScrn, entityIndex);
         pScrn->driverVersion = COMBINED_DRIVER_VERSION;
-        pScrn->driverName    = WLSHM_DRIVER_NAME;
-        pScrn->name          = WLSHM_DRIVER_NAME;
-        pScrn->Probe         = wlshm_probe;
+        pScrn->driverName    = WAYLAND_DRIVER_NAME;
+        pScrn->name          = WAYLAND_DRIVER_NAME;
+        pScrn->Probe         = wayland_probe;
         pScrn->PreInit       = wlshm_pre_init;
         pScrn->ScreenInit    = wlshm_screen_init;
         pScrn->SwitchMode    = wlshm_switch_mode;
@@ -559,7 +559,7 @@ wlshm_probe(DriverPtr drv, int flags)
 }
 
 static const OptionInfoRec *
-wlshm_available_options(int chipid, int busid)
+wayland_available_options(int chipid, int busid)
 {
     return wlshm_options;
 }
@@ -569,7 +569,7 @@ wlshm_available_options(int chipid, int busid)
 #endif
 
 static Bool
-wlshm_driver_func(ScrnInfoPtr pScrn, xorgDriverFuncOp op, pointer ptr)
+wayland_driver_func(ScrnInfoPtr pScrn, xorgDriverFuncOp op, pointer ptr)
 {
     CARD32 *flag;
 
@@ -591,20 +591,20 @@ wlshm_driver_func(ScrnInfoPtr pScrn, xorgDriverFuncOp op, pointer ptr)
  * an upper-case version of the driver name.
  */
 
-_X_EXPORT DriverRec wlshm = {
+_X_EXPORT DriverRec wayland = {
     COMBINED_DRIVER_VERSION,
-    WLSHM_DRIVER_NAME,
+    WAYLAND_DRIVER_NAME,
     NULL,
-    wlshm_probe,
-    wlshm_available_options,
+    wayland_probe,
+    wayland_available_options,
     NULL,
     0,
-    wlshm_driver_func
+    wayland_driver_func
 };
 
-static XF86ModuleVersionInfo wlshm_vers_rec =
+static XF86ModuleVersionInfo wayland_vers_rec =
 {
-    WLSHM_DRIVER_NAME,
+    WAYLAND_DRIVER_NAME,
     MODULEVENDORSTRING,
     MODINFOSTRING1,
     MODINFOSTRING2,
@@ -618,7 +618,7 @@ static XF86ModuleVersionInfo wlshm_vers_rec =
 
 
 static pointer
-wlshm_setup(pointer module, pointer opts, int *errmaj, int *errmin)
+wayland_setup(pointer module, pointer opts, int *errmaj, int *errmin)
 {
     static Bool initialized = FALSE;
 
@@ -629,7 +629,7 @@ wlshm_setup(pointer module, pointer opts, int *errmaj, int *errmin)
     }
 
     initialized = TRUE;
-    xf86AddDriver(&wlshm, module, HaveDriverFuncs);
+    xf86AddDriver(&wayland, module, HaveDriverFuncs);
 
     /*
      * The return value must be non-NULL on success even though there
@@ -642,8 +642,8 @@ wlshm_setup(pointer module, pointer opts, int *errmaj, int *errmin)
  * This is the module init data.
  * Its name has to be the driver name followed by ModuleData
  */
-_X_EXPORT XF86ModuleData wlshmModuleData = {
-    &wlshm_vers_rec,
-    wlshm_setup,
+_X_EXPORT XF86ModuleData waylandModuleData = {
+    &wayland_vers_rec,
+    wayland_setup,
     NULL
 };
