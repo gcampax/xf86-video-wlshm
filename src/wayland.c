@@ -46,7 +46,7 @@
 
 /* All drivers using xwayland module need this */
 #include "xwayland.h"
-#include <xorg/xf86Priv.h>
+#include <xf86Priv.h>
 
 /*
  * Driver data structures.
