@@ -568,6 +568,10 @@ wayland_available_options(int chipid, int busid)
 #define HW_SKIP_CONSOLE 4
 #endif
 
+#ifndef HW_WAYLAND
+#define HW_WAYLAND 8
+#endif
+
 static Bool
 wayland_driver_func(ScrnInfoPtr pScrn, xorgDriverFuncOp op, pointer ptr)
 {
@@ -576,7 +580,7 @@ wayland_driver_func(ScrnInfoPtr pScrn, xorgDriverFuncOp op, pointer ptr)
     switch (op) {
     case GET_REQUIRED_HW_INTERFACES:
         flag = (CARD32*)ptr;
-	(*flag) = HW_SKIP_CONSOLE;
+	(*flag) = HW_WAYLAND;
 	return TRUE;
     default:
 	return FALSE;
